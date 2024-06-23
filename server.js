@@ -1,44 +1,65 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
+// Database setup
+const db = new sqlite3.Database('./missing_sku.db', (err) => {
+    if (err) {
+        console.error('Error opening database:', err.message);
+    } else {
+        console.log('Connected to the SQLite database.');
+        db.run(`CREATE TABLE IF NOT EXISTS skus (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sku TEXT NOT NULL,
+            status TEXT NOT NULL
+        )`, (err) => {
+            if (err) {
+                console.error('Error creating table:', err.message);
+            } else {
+                console.log('Table "skus" is ready.');
+            }
+        });
+    }
+});
+
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-let db = new sqlite3.Database('./missing_sku.db', (err) => {
-  if (err) {
-    console.error(err.message);
-  }
-  console.log('Connected to the missing_sku database.');
-});
+app.post('/add-sku', (req, res) => {
+    const sku = req.body.sku;
 
-db.run(`CREATE TABLE IF NOT EXISTS skus (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  sku TEXT
-)`);
-
-app.post('/api/sku', (req, res) => {
-  let sku = req.body.sku;
-  db.run(`INSERT INTO skus (sku) VALUES (?)`, [sku], function(err) {
-    if (err) {
-      return res.status(500).send(err.message);
+    if (!sku) {
+        res.status(400).send({ error: 'SKU is required' });
+        return;
     }
-    res.send('SKU saved successfully');
-  });
+
+    db.get('SELECT * FROM skus WHERE sku = ?', [sku], (err, row) => {
+        if (err) {
+            console.error('Error querying database:', err.message);
+            res.status(500).send({ error: 'An error occurred' });
+            return;
+        }
+
+        if (row) {
+            res.status(200).send({ message: 'SKU already requested' });
+        } else {
+            db.run('INSERT INTO skus (sku, status) VALUES (?, ?)', [sku, 'requested'], (err) => {
+                if (err) {
+                    console.error('Error inserting into database:', err.message);
+                    res.status(500).send({ error: 'An error occurred' });
+                } else {
+                    res.status(200).send({ message: 'SKU request added' });
+                }
+            });
+        }
+    });
 });
 
-app.get('/api/sku', (req, res) => {
-  db.all(`SELECT * FROM skus`, [], (err, rows) => {
-    if (err) {
-      return res.status(500).send(err.message);
-    }
-    res.json(rows);
-  });
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
