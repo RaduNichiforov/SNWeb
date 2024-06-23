@@ -1,17 +1,17 @@
 {
-  "name": "missing-sku-server",
+  "name": "snweb",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "SNWeb project with missing SKU server",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "body-parser": "^1.20.2",
-    "express": "^4.19.2",
-    "sqlite3": "^5.1.7"
+    "express": "^4.17.1",
+    "sqlite3": "^5.0.0",
+    "body-parser": "^1.19.0"
+  },
+  "engines": {
+    "node": ">=12.0.0"
   }
 }

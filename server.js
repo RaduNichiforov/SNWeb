@@ -1,39 +1,44 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const db = require('./database');
+const sqlite3 = require('sqlite3').verbose();
+
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
-app.use(express.static('public')); // Serve your static files from 'public' directory
+app.use(express.static('public'));
 
-app.post('/add-sku', (req, res) => {
-  const { sku } = req.body;
-  if (!sku) {
-    return res.status(400).json({ message: 'SKU is required' });
+let db = new sqlite3.Database('./missing_sku.db', (err) => {
+  if (err) {
+    console.error(err.message);
   }
+  console.log('Connected to the missing_sku database.');
+});
 
-  db.run("INSERT INTO skus (sku) VALUES (?)", [sku], function(err) {
+db.run(`CREATE TABLE IF NOT EXISTS skus (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sku TEXT
+)`);
+
+app.post('/api/sku', (req, res) => {
+  let sku = req.body.sku;
+  db.run(`INSERT INTO skus (sku) VALUES (?)`, [sku], function(err) {
     if (err) {
-      if (err.code === 'SQLITE_CONSTRAINT') {
-        return res.status(409).json({ message: 'This SKU has already been requested and there is no update yet.' });
-      }
-      return res.status(500).json({ message: 'Database error', error: err });
+      return res.status(500).send(err.message);
     }
-    res.status(201).json({ message: 'SKU has been added to the database.' });
+    res.send('SKU saved successfully');
   });
 });
 
-// Endpoint to get saved SKUs
-app.get('/skus', (req, res) => {
-  db.all("SELECT sku FROM skus", [], (err, rows) => {
+app.get('/api/sku', (req, res) => {
+  db.all(`SELECT * FROM skus`, [], (err, rows) => {
     if (err) {
-      return res.status(500).json({ message: 'Database error', error: err });
+      return res.status(500).send(err.message);
     }
-    res.status(200).json(rows);
+    res.json(rows);
   });
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
