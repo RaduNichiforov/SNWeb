@@ -28,34 +28,41 @@ db.run(`
 
 // Routes
 app.post('/add-sku', (req, res) => {
-    const { sku, availabilityDate } = req.body;
+    const { sku } = req.body;
     const sqlSelect = 'SELECT * FROM skus WHERE sku = ?';
-    const sqlInsert = 'INSERT INTO skus (sku, availability_date) VALUES (?, ?)';
-    const sqlUpdate = 'UPDATE skus SET availability_date = ? WHERE sku = ?';
+    const sqlInsert = 'INSERT INTO skus (sku) VALUES (?)';
 
     db.get(sqlSelect, [sku], (err, row) => {
         if (err) {
             return res.json({ success: false, message: 'An error occurred.' });
         }
         if (row) {
-            if (availabilityDate) {
-                db.run(sqlUpdate, [availabilityDate, sku], (err) => {
-                    if (err) {
-                        return res.json({ success: false, message: 'An error occurred while updating the availability date.' });
-                    }
-                    return res.json({ success: true, message: 'SKU already exists. Availability date updated.' });
-                });
+            if (row.availability_date) {
+                return res.json({ success: false, message: `SKU already reported. Expected availability on ${row.availability_date}.` });
             } else {
-                return res.json({ success: false, message: 'SKU already exists. No availability date provided.' });
+                return res.json({ success: false, message: 'SKU already reported. Waiting for update.' });
             }
         } else {
-            db.run(sqlInsert, [sku, availabilityDate], (err) => {
+            db.run(sqlInsert, [sku], (err) => {
                 if (err) {
                     return res.json({ success: false, message: 'An error occurred while adding the SKU.' });
                 }
                 return res.json({ success: true, message: 'SKU added successfully.' });
             });
         }
+    });
+});
+
+// Admin route to update availability date (assuming this is secure and only admin has access)
+app.post('/update-availability', (req, res) => {
+    const { sku, availability_date } = req.body;
+    const sqlUpdate = 'UPDATE skus SET availability_date = ? WHERE sku = ?';
+
+    db.run(sqlUpdate, [availability_date, sku], (err) => {
+        if (err) {
+            return res.json({ success: false, message: 'An error occurred while updating the availability date.' });
+        }
+        return res.json({ success: true, message: 'Availability date updated successfully.' });
     });
 });
 

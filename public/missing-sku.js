@@ -2,14 +2,13 @@ document.getElementById('skuForm').addEventListener('submit', function(event) {
   event.preventDefault();
 
   const sku = document.getElementById('skuInput').value;
-  const availabilityDate = document.getElementById('availabilityDate').value;
 
   fetch('/add-sku', {
       method: 'POST',
       headers: {
           'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ sku: sku, availabilityDate: availabilityDate })
+      body: JSON.stringify({ sku: sku })
   })
   .then(response => response.json())
   .then(data => {
