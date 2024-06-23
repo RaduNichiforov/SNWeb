@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unit Parts Finder</title>
+  <link rel="stylesheet" href="compatible-parts.css">
+</head>
+<body>
+  <div class="container">
+    <input type="text" id="searchBar" placeholder="Enter model number">
+    <select id="partTypeDropdown">
+      <option value="dust cup">Dust Cup</option>
+      <option value="handle & hose">Handle & Hose</option>
+      <option value="wand">Wand</option>
+      <option value="floor nozzle">Floor Nozzle</option>
+      <option value="motor">Motor</option>
+      <option value="accessories">Accessories</option>
+    </select>
+    <button onclick="filterUnits()">Search</button>
+  </div>
+  <div id="results"></div>
+  <footer>
+    <a href="index.html" class="main-link">Main Page</a>
+    <p>Made by Nicky with love <span class="heart">💙</span></p>
+  </footer>
+  <script src="compatible-parts.js"></script>
+</body>
+</html>
