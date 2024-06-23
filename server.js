@@ -4,62 +4,62 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-// Database setup
-const db = new sqlite3.Database('./missing_sku.db', (err) => {
-    if (err) {
-        console.error('Error opening database:', err.message);
-    } else {
-        console.log('Connected to the SQLite database.');
-        db.run(`CREATE TABLE IF NOT EXISTS skus (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sku TEXT NOT NULL,
-            status TEXT NOT NULL
-        )`, (err) => {
-            if (err) {
-                console.error('Error creating table:', err.message);
-            } else {
-                console.log('Table "skus" is ready.');
-            }
-        });
-    }
-});
-
-app.use(bodyParser.urlencoded({ extended: true }));
+// Middleware
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.post('/add-sku', (req, res) => {
-    const sku = req.body.sku;
-
-    if (!sku) {
-        res.status(400).send({ error: 'SKU is required' });
-        return;
+// Database
+const db = new sqlite3.Database('missing_sku.db', (err) => {
+    if (err) {
+        console.error('Database opening error: ' + err.message);
     }
+});
 
-    db.get('SELECT * FROM skus WHERE sku = ?', [sku], (err, row) => {
+// Create table if not exists
+db.run(`
+    CREATE TABLE IF NOT EXISTS skus (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sku TEXT UNIQUE,
+        availability_date TEXT
+    )
+`);
+
+// Routes
+app.post('/add-sku', (req, res) => {
+    const { sku, availabilityDate } = req.body;
+    const sqlSelect = 'SELECT * FROM skus WHERE sku = ?';
+    const sqlInsert = 'INSERT INTO skus (sku, availability_date) VALUES (?, ?)';
+    const sqlUpdate = 'UPDATE skus SET availability_date = ? WHERE sku = ?';
+
+    db.get(sqlSelect, [sku], (err, row) => {
         if (err) {
-            console.error('Error querying database:', err.message);
-            res.status(500).send({ error: 'An error occurred' });
-            return;
+            return res.json({ success: false, message: 'An error occurred.' });
         }
-
         if (row) {
-            res.status(200).send({ message: 'SKU already requested' });
+            if (availabilityDate) {
+                db.run(sqlUpdate, [availabilityDate, sku], (err) => {
+                    if (err) {
+                        return res.json({ success: false, message: 'An error occurred while updating the availability date.' });
+                    }
+                    return res.json({ success: true, message: 'SKU already exists. Availability date updated.' });
+                });
+            } else {
+                return res.json({ success: false, message: 'SKU already exists. No availability date provided.' });
+            }
         } else {
-            db.run('INSERT INTO skus (sku, status) VALUES (?, ?)', [sku, 'requested'], (err) => {
+            db.run(sqlInsert, [sku, availabilityDate], (err) => {
                 if (err) {
-                    console.error('Error inserting into database:', err.message);
-                    res.status(500).send({ error: 'An error occurred' });
-                } else {
-                    res.status(200).send({ message: 'SKU request added' });
+                    return res.json({ success: false, message: 'An error occurred while adding the SKU.' });
                 }
+                return res.json({ success: true, message: 'SKU added successfully.' });
             });
         }
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Start server
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
