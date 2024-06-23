@@ -1,11 +1,9 @@
 {
-  "name": "snweb",
+  "name": "SNWeb",
   "version": "1.0.0",
-  "description": "SNWeb project",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "postinstall": "npm rebuild sqlite3"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.17.1",
